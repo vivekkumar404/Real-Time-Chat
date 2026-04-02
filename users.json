@@ -1,0 +1,50 @@
+{
+  "rishu": {
+    "password": "rishu123",
+    "friends": [
+      "vivek"
+    ],
+    "friendRequests": [],
+    "pendingRequests": [
+      "vivek"
+    ],
+    "messages": {
+      "vivek": [
+        {
+          "from": "rishu",
+          "text": "hii",
+          "time": "6:41:44 pm"
+        },
+        {
+          "from": "vivek",
+          "text": "hello",
+          "time": "6:41:56 pm"
+        }
+      ]
+    },
+    "active": true
+  },
+  "vivek": {
+    "password": "vivek123",
+    "friends": [
+      "rishu"
+    ],
+    "friendRequests": [],
+    "pendingRequests": [],
+    "messages": {
+      "rishu": [
+        {
+          "from": "rishu",
+          "text": "hii",
+          "time": "6:41:44 pm"
+        },
+        {
+          "from": "vivek",
+          "text": "hello",
+          "time": "6:41:56 pm"
+        }
+      ]
+    },
+    "active": true
+  }
+}

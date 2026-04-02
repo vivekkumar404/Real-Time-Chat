@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Real-time Chat</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 20px; }
+        .auth-screen { position: fixed; inset: 0; background: rgba(0,0,0,0.8); display: flex; justify-content: center; align-items: center; z-index: 100; }
+        .auth-box { background: white; padding: 30px; border-radius: 12px; width: 320px; }
+        .auth-box h2 { text-align: center; margin-bottom: 20px; color: #333; }
+        .auth-box input { width: 100%; padding: 12px; margin-bottom: 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; }
+        .auth-box button { width: 100%; padding: 12px; background: #4a76a8; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; margin-bottom: 10px; }
+        .auth-box button:hover { background: #3d5a80; }
+        .auth-box p { text-align: center; color: #666; font-size: 13px; }
+        .auth-box p span { color: #4a76a8; cursor: pointer; text-decoration: underline; }
+        .app-container { display: none; flex-direction: column; width: 100%; max-width: 1000px; }
+        .header { display: flex; justify-content: space-between; align-items: center; background: white; padding: 15px 20px; border-radius: 12px 12px 0 0; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
+        .header h2 { color: #4a76a8; }
+        .header button { padding: 8px 16px; background: #dc3545; color: white; border: none; border-radius: 6px; cursor: pointer; }
+        .main-content { display: flex; gap: 15px; flex: 1; background: white; padding: 15px; border-radius: 0 0 12px 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
+        .sidebar { width: 280px; display: flex; flex-direction: column; gap: 15px; }
+        .section { background: #f8f9fa; padding: 12px; border-radius: 8px; }
+        .section h3 { font-size: 12px; color: #666; margin-bottom: 10px; text-transform: uppercase; }
+        .add-friend-form { display: flex; gap: 5px; margin-bottom: 10px; }
+        .add-friend-form input { flex: 1; padding: 8px; border: 1px solid #ddd; border-radius: 6px; font-size: 13px; }
+        .add-friend-form button { padding: 8px 12px; background: #4a76a8; color: white; border: none; border-radius: 6px; cursor: pointer; }
+        .user-item, .friend-item { padding: 10px; margin-bottom: 5px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 8px; font-size: 14px; }
+        .user-item:hover, .friend-item:hover { background: #e9ecef; }
+        .online-dot { width: 8px; height: 8px; background: #4caf50; border-radius: 50%; }
+        .offline-dot { width: 8px; height: 8px; background: #ccc; border-radius: 50%; }
+        .request-item { padding: 10px; background: #fff3cd; border-radius: 8px; margin-bottom: 8px; }
+        .request-item .name { font-weight: 600; margin-bottom: 8px; }
+        .request-btns { display: flex; gap: 5px; }
+        .request-btns button { flex: 1; padding: 6px; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; }
+        .accept-btn { background: #4caf50; color: white; }
+        .reject-btn { background: #dc3545; color: white; }
+        .chat-container { flex: 1; display: flex; flex-direction: column; }
+        .chat-header { background: #4a76a8; color: white; padding: 15px; font-size: 16px; font-weight: 600; border-radius: 8px 8px 0 0; }
+        .messages { flex: 1; height: 400px; overflow-y: auto; padding: 15px; background: #fff; border: 1px solid #eee; border-top: none; display: flex; flex-direction: column; }
+        .message { margin-bottom: 15px; display: flex; flex-direction: column; max-width: 70%; word-break: break-word; }
+        .message.sent { align-self: flex-end; align-items: flex-end; }
+        .message.received { align-self: flex-start; align-items: flex-start; }
+        .message-bubble { padding: 12px 16px; border-radius: 18px; font-size: 14px; line-height: 1.4; word-wrap: break-word; }
+        .message.sent .message-bubble { background: #4a76a8; color: white; border-bottom-right-radius: 4px; }
+        .message.received .message-bubble { background: #e9ecef; color: #333; border-bottom-left-radius: 4px; }
+        .message .meta { font-size: 11px; color: #888; margin-top: 4px; padding: 0 8px; }
+        .message.sent .meta { text-align: right; }
+        .chat-input { display: flex; padding: 15px; border: 1px solid #eee; border-top: none; border-radius: 0 0 8px 8px; gap: 10px; }
+        .chat-input input { flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 6px; }
+        .chat-input button { padding: 10px 20px; background: #4a76a8; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; }
+        .chat-input button:disabled { background: #ccc; cursor: not-allowed; }
+    </style>
+</head>
+<body>
+    <div id="authScreen" class="auth-screen">
+        <div class="auth-box">
+            <h2 id="authTitle">Login</h2>
+            <input type="text" id="authUsername" placeholder="Username">
+            <input type="password" id="authPassword" placeholder="Password">
+            <button onclick="handleAuth()" id="authBtn">Login</button>
+            <p><span id="authToggle" onclick="toggleAuth()">Don't have an account? Register</span></p>
+        </div>
+    </div>
+
+    <div id="appContainer" class="app-container">
+        <div class="header">
+            <h2>Welcome, <span id="userDisplay"></span></h2>
+            <button onclick="logout()">Logout</button>
+        </div>
+        <div class="main-content">
+            <div class="sidebar">
+                <div class="section">
+                    <h3>Add Friend</h3>
+                    <div class="add-friend-form">
+                        <input type="text" id="friendName" placeholder="Enter name">
+                        <button onclick="sendFriendRequest()">+</button>
+                    </div>
+                </div>
+                <div class="section">
+                    <h3>Friend Requests</h3>
+                    <div id="friendRequests"></div>
+                </div>
+                <div class="section">
+                    <h3>Friends</h3>
+                    <div id="friendList"></div>
+                </div>
+                <div class="section">
+                    <h3>Online Users</h3>
+                    <div id="onlineUsers"></div>
+                </div>
+            </div>
+            <div class="chat-container">
+                <div class="chat-header" id="chatHeader">Select a friend to chat</div>
+                <div class="messages" id="messages"></div>
+                <div class="chat-input">
+                    <input type="text" id="messageInput" placeholder="Type a message..." onkeypress="handleKeyPress(event)" disabled>
+                    <button onclick="sendMessage()" id="sendBtn" disabled>Send</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+        let username = '';
+        let currentChat = null;
+        let chatHistory = {};
+        let isLogin = true;
+
+        function toggleAuth() {
+            isLogin = !isLogin;
+            document.getElementById('authTitle').innerText = isLogin ? 'Login' : 'Register';
+            document.getElementById('authBtn').innerText = isLogin ? 'Login' : 'Register';
+            document.getElementById('authToggle').innerText = isLogin ? "Don't have an account? Register" : "Already have an account? Login";
+        }
+
+        async function handleAuth() {
+            const userIn = document.getElementById('authUsername').value.trim();
+            const passIn = document.getElementById('authPassword').value.trim();
+            
+            if (!userIn || !passIn) return alert('Please fill all fields');
+            
+            const endpoint = isLogin ? '/api/login' : '/api/register';
+            const res = await fetch(endpoint, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username: userIn, password: passIn })
+            });
+            const data = await res.json();
+            
+            if (data.success) {
+                username = userIn;
+                document.getElementById('userDisplay').innerText = username;
+                document.getElementById('authScreen').style.display = 'none';
+                document.getElementById('appContainer').style.display = 'flex';
+                socket.emit('join', username);
+            } else {
+                alert(data.message);
+            }
+        }
+
+        function logout() {
+            location.reload();
+        }
+
+        function sendFriendRequest() {
+            const input = document.getElementById('friendName');
+            const name = input.value.trim();
+            if (name) {
+                socket.emit('sendFriendRequest', name);
+                input.value = '';
+            }
+        }
+
+        function sendFriendRequestTo(name) {
+            socket.emit('sendFriendRequest', name);
+        }
+
+        function acceptRequest(name) {
+            socket.emit('acceptFriendRequest', name);
+        }
+
+        function rejectRequest(name) {
+            socket.emit('rejectFriendRequest', name);
+        }
+
+        function selectChat(friend) {
+            currentChat = friend;
+            document.getElementById('chatHeader').innerText = 'Chat with ' + friend;
+            document.getElementById('messageInput').disabled = false;
+            document.getElementById('sendBtn').disabled = false;
+            if (!chatHistory[friend]) {
+                chatHistory[friend] = [];
+            }
+            renderMessages();
+            socket.emit('getChatHistory', friend);
+        }
+
+        function renderMessages() {
+            const container = document.getElementById('messages');
+            container.innerHTML = '';
+            if (!currentChat || !chatHistory[currentChat] || !Array.isArray(chatHistory[currentChat])) return;
+            chatHistory[currentChat].forEach(msg => {
+                const div = document.createElement('div');
+                const isMe = msg.from === username;
+                const text = msg.text || '';
+                const time = msg.time || '';
+                div.className = 'message ' + (isMe ? 'sent' : 'received');
+                div.innerHTML = '<div class="message-bubble">' + escapeHtml(text) + '</div><div class="meta">' + (isMe ? 'You' : escapeHtml(msg.from)) + ' • ' + time + '</div>';
+                container.appendChild(div);
+            });
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function escapeHtml(text) {
+            const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
+            return text.replace(/[&<>"']/g, m => map[m]);
+        }
+
+        socket.on('chatHistory', ({ friend, messages }) => {
+            chatHistory[friend] = messages || [];
+            if (currentChat === friend) renderMessages();
+        });
+
+        function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const text = input.value.trim();
+            if (text && currentChat) {
+                chatHistory[currentChat] = chatHistory[currentChat] || [];
+                chatHistory[currentChat].push({ from: username, text, time: new Date().toLocaleTimeString() });
+                socket.emit('privateMessage', { to: currentChat, message: text });
+                input.value = '';
+                renderMessages();
+            }
+        }
+
+        function handleKeyPress(e) { if (e.key === 'Enter') sendMessage(); }
+
+        socket.on('friendList', (list) => {
+            const container = document.getElementById('friendList');
+            container.innerHTML = list.map(f => `<div class="friend-item" onclick="selectChat('${f}')">👤 ${f}</div>`).join('');
+        });
+
+        socket.on('pendingRequests', (requests) => {
+            const container = document.getElementById('friendRequests');
+            if (!requests || requests.length === 0) {
+                container.innerHTML = '<div style="color: #999; font-size: 13px;">No pending requests</div>';
+                return;
+            }
+            container.innerHTML = requests.map(r => `
+                <div class="request-item">
+                    <div class="name">${r}</div>
+                    <div class="request-btns">
+                        <button class="accept-btn" onclick="acceptRequest('${r}')">Accept</button>
+                        <button class="reject-btn" onclick="rejectRequest('${r}')">Reject</button>
+                    </div>
+                </div>
+            `).join('');
+        });
+
+        socket.on('onlineUsers', (users) => {
+            const container = document.getElementById('onlineUsers');
+            container.innerHTML = users.filter(u => u !== username).map(u => `<div class="user-item"><span class="online-dot"></span>${u} <button onclick="sendFriendRequestTo('${u}')" style="margin-left:auto;padding:4px 8px;background:#4a76a8;color:white;border:none;border-radius:4px;cursor:pointer;font-size:11px;">Add</button></div>`).join('') || '<div style="color:#999;font-size:13px;">No other users online</div>';
+        });
+
+        socket.on('userOnline', (users) => {
+            const container = document.getElementById('onlineUsers');
+            container.innerHTML = users.filter(u => u !== username).map(u => `<div class="user-item"><span class="online-dot"></span>${u} <button onclick="sendFriendRequestTo('${u}')" style="margin-left:auto;padding:4px 8px;background:#4a76a8;color:white;border:none;border-radius:4px;cursor:pointer;font-size:11px;">Add</button></div>`).join('') || '<div style="color:#999;font-size:13px;">No other users online</div>';
+        });
+
+        socket.on('requestSent', (name) => alert(`Friend request sent to ${name}`));
+        socket.on('requestError', (msg) => alert(msg));
+        socket.on('requestAccepted', (name) => alert(`${name} accepted your friend request!`));
+
+        socket.on('newFriendRequest', (from) => {
+            const container = document.getElementById('friendRequests');
+            const existing = container.querySelector('.request-item');
+            if (existing) {
+                container.innerHTML = `<div class="request-item"><div class="name">${from}</div><div class="request-btns"><button class="accept-btn" onclick="acceptRequest('${from}')">Accept</button><button class="reject-btn" onclick="rejectRequest('${from}')">Reject</button></div></div>` + container.innerHTML;
+            }
+        });
+
+        socket.on('privateMessage', ({ from, message, time }) => {
+            chatHistory[from] = chatHistory[from] || [];
+            chatHistory[from].push({ from: from, text: message, time: time });
+            if (currentChat === from) renderMessages();
+        });
+    </script>
+</body>
+</html>
